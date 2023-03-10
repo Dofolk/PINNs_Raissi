@@ -20,8 +20,14 @@ tf.set_random_seed(1234)
 
 class PhysicsInformedNN:
     # Initialize the class
+    '''
+    Some explanation of notations
+    lb = lower bound
+    ub = upper bound
+    '''
     def __init__(self, x0, u0, x1, layers, dt, lb, ub, q):
         
+        # make the input variable as the self.xxx variables
         self.lb = lb
         self.ub = ub
         
@@ -55,10 +61,12 @@ class PhysicsInformedNN:
         self.U0_pred = self.net_U0(self.x0_tf) # N x (q+1)
         self.U1_pred, self.U1_x_pred= self.net_U1(self.x1_tf) # N1 x (q+1)
         
+        # Loss function
         self.loss = tf.reduce_sum(tf.square(self.u0_tf - self.U0_pred)) + \
                     tf.reduce_sum(tf.square(self.U1_pred[0,:] - self.U1_pred[1,:])) + \
                     tf.reduce_sum(tf.square(self.U1_x_pred[0,:] - self.U1_x_pred[1,:]))                     
         
+        # Set up optimizer
         self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(self.loss, 
                                                                 method = 'L-BFGS-B', 
                                                                 options = {'maxiter': 50000,
@@ -252,26 +260,3 @@ if __name__ == "__main__":
     ax.legend(loc='upper center', bbox_to_anchor=(0.1, -0.3), ncol=2, frameon=False)
     
     # savefig('./figures/AC')  
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
