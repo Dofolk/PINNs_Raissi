@@ -10,24 +10,29 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import scipy.io
-from plotting import newfig, savefig
+#from plotting import newfig, savefig
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+# setting random seed 
 np.random.seed(1234)
 tf.set_random_seed(1234)
 
 
 class PhysicsInformedNN:
     # Initialize the class
-    '''
-    Some explanation of notations
-    lb = lower bound
-    ub = upper bound
-    '''
+    
     def __init__(self, x0, u0, x1, layers, dt, lb, ub, q):
         
         # make the input variable as the self.xxx variables
+        '''
+        Some explanation of notations
+        lb = lower bound
+        ub = upper bound
+        dt = step size, it's same to the dt of integral
+        x1 = np.vstack([lb, ub])
+        layers = the neuron numbers for each layers
+        '''
         self.lb = lb
         self.ub = ub
         
@@ -40,7 +45,7 @@ class PhysicsInformedNN:
         self.dt = dt
         self.q = max(q,1)
     
-        # Initialize NN
+        # Initialize NN and get the initial weights and biases
         self.weights, self.biases = self.initialize_NN(layers)
         
         # Load IRK weights
@@ -48,10 +53,11 @@ class PhysicsInformedNN:
         self.IRK_weights = np.reshape(tmp[0:q**2+q], (q+1,q))
         self.IRK_times = tmp[q**2+q:]
         
-        # tf placeholders and graph
+        # Set up tensorflow sesseion
         self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True,
                                                      log_device_placement=True))
         
+        # Initialize the space to store the gradient of each parameters
         self.x0_tf = tf.placeholder(tf.float32, shape=(None, self.x0.shape[1]))
         self.x1_tf = tf.placeholder(tf.float32, shape=(None, self.x1.shape[1]))
         self.u0_tf = tf.placeholder(tf.float32, shape=(None, self.u0.shape[1]))
@@ -81,7 +87,11 @@ class PhysicsInformedNN:
         init = tf.global_variables_initializer()
         self.sess.run(init)
         
-    def initialize_NN(self, layers):        
+    def initialize_NN(self, layers):
+        '''
+        Initialize the neurals with normal distribution(xavier_init)
+        And also, set each correspondings(neuron's weights and biases) as the trainable parameters
+        '''
         weights = []
         biases = []
         num_layers = len(layers) 
@@ -99,6 +109,7 @@ class PhysicsInformedNN:
         return tf.Variable(tf.truncated_normal([in_dim, out_dim], stddev=xavier_stddev), dtype=tf.float32)
     
     def neural_net(self, X, weights, biases):
+        # Set the computation flow of the whole network
         num_layers = len(weights) + 1
         
         H = 2.0*(X - self.lb)/(self.ub - self.lb) - 1.0
@@ -111,6 +122,8 @@ class PhysicsInformedNN:
         Y = tf.add(tf.matmul(H, W), b)
         return Y
     
+    # The forward gradients for each needs
+    # For U is U(x), grad_ys is setting the weight for each gradien results
     def fwd_gradients_0(self, U, x):        
         g = tf.gradients(U, x, grad_ys=self.dummy_x0_tf)[0]
         return tf.gradients(g, self.dummy_x0_tf)[0]
@@ -120,11 +133,12 @@ class PhysicsInformedNN:
         return tf.gradients(g, self.dummy_x1_tf)[0]
     
     def net_U0(self, x):
+        # Eq(12) in the paper
         U1 = self.neural_net(x, self.weights, self.biases)
         U = U1[:,:-1]
         U_x = self.fwd_gradients_0(U, x)
         U_xx = self.fwd_gradients_0(U_x, x)
-        F = 5.0*U - 5.0*U**3 + 0.0001*U_xx
+        F = 5.0*U - 5.0*U**3 + 0.0001*U_xx 
         U0 = U1 - self.dt*tf.matmul(F, self.IRK_weights.T)
         return U0
 
@@ -166,7 +180,8 @@ class PhysicsInformedNN:
 
     
 if __name__ == "__main__": 
-        
+    
+    # Some initial values
     q = 100
     layers = [1, 200, 200, 200, 200, q+1]
     lb = np.array([-1.0])
@@ -174,6 +189,7 @@ if __name__ == "__main__":
     
     N = 200
     
+    # Load the data produced by the high accuracy method and store each parameters
     data = scipy.io.loadmat('../Data/AC.mat')
     
     t = data['tt'].flatten()[:,None] # T x 1
@@ -192,7 +208,7 @@ if __name__ == "__main__":
     u0 = u0 + noise_u0*np.std(u0)*np.random.randn(u0.shape[0], u0.shape[1])
     
        
-    # Boudanry data
+    # Boundary data
     x1 = np.vstack((lb,ub))
     
     # Test data
@@ -209,7 +225,7 @@ if __name__ == "__main__":
     ######################################################################
     ############################# Plotting ###############################
     ######################################################################    
-
+'''
     fig, ax = newfig(1.0, 1.2)
     ax.axis('off')
     
@@ -260,3 +276,4 @@ if __name__ == "__main__":
     ax.legend(loc='upper center', bbox_to_anchor=(0.1, -0.3), ncol=2, frameon=False)
     
     # savefig('./figures/AC')  
+'''
