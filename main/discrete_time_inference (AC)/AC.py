@@ -30,7 +30,7 @@ class PhysicsInformedNN:
         lb = lower bound
         ub = upper bound
         dt = step size, it's same to the dt of integral
-        x1 = np.vstack([lb, ub])
+        x1 = np.vstack([lb, ub]), be the boundary data
         layers = the neuron numbers for each layers
         '''
         self.lb = lb
@@ -51,7 +51,7 @@ class PhysicsInformedNN:
         # Load IRK weights
         tmp = np.float32(np.loadtxt('../../Utilities/IRK_weights/Butcher_IRK%d.txt' % (q), ndmin = 2))
         self.IRK_weights = np.reshape(tmp[0:q**2+q], (q+1,q))
-        self.IRK_times = tmp[q**2+q:]
+        self.IRK_times = tmp[q**2+q:] # unused
         
         # Set up tensorflow sesseion
         self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True,
