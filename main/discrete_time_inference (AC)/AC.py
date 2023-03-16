@@ -32,6 +32,7 @@ class PhysicsInformedNN:
         dt = step size, it's same to the dt of integral
         x1 = np.vstack([lb, ub]), be the boundary data
         layers = the neuron numbers for each layers
+        x0 = the exact value of the grids on domain, i.e. x0 = u(t,x)
         '''
         self.lb = lb
         self.ub = ub
@@ -58,7 +59,7 @@ class PhysicsInformedNN:
                                                      log_device_placement=True))
         
         # Initialize the space to store the gradient of each parameters
-        self.x0_tf = tf.placeholder(tf.float32, shape=(None, self.x0.shape[1]))
+        self.x0_tf = tf.placeholder(tf.float32, shape=(None, self.x0.shape[1])) # ground truth
         self.x1_tf = tf.placeholder(tf.float32, shape=(None, self.x1.shape[1]))
         self.u0_tf = tf.placeholder(tf.float32, shape=(None, self.u0.shape[1]))
         self.dummy_x0_tf = tf.placeholder(tf.float32, shape=(None, self.q)) # dummy variable for fwd_gradients
@@ -138,8 +139,8 @@ class PhysicsInformedNN:
         U = U1[:,:-1]
         U_x = self.fwd_gradients_0(U, x)
         U_xx = self.fwd_gradients_0(U_x, x)
-        F = 5.0*U - 5.0*U**3 + 0.0001*U_xx 
-        U0 = U1 - self.dt*tf.matmul(F, self.IRK_weights.T)
+        F = 5.0*U - 5.0*U**3 + 0.0001*U_xx # The flower font N in the paper
+        U0 = U1 - self.dt*tf.matmul(F, self.IRK_weights.T) # runge kutta method
         return U0
 
     def net_U1(self, x):
@@ -202,7 +203,7 @@ if __name__ == "__main__":
     
     # Initial data
     noise_u0 = 0.0
-    idx_x = np.random.choice(Exact.shape[1], N, replace=False) 
+    idx_x = np.random.choice(Exact.shape[1], N, replace=False) # permutation
     x0 = x[idx_x,:]
     u0 = Exact[idx_t0:idx_t0+1,idx_x].T
     u0 = u0 + noise_u0*np.std(u0)*np.random.randn(u0.shape[0], u0.shape[1])
